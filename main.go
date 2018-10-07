@@ -26,14 +26,16 @@ type AzureSession struct {
 
 func readJSON(path string) (*map[string]interface{}, error) {
 	data, err := ioutil.ReadFile(path)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "Can't open the file")
 	}
+
 	contents := make(map[string]interface{})
 	err = json.Unmarshal(data, &contents)
 
 	if err != nil {
-		err = errors.Wrap(err, "Can't not unmarshal file")
+		err = errors.Wrap(err, "Can't unmarshal file")
 	}
 
 	return &contents, err
@@ -43,19 +45,21 @@ func newSessionFromFile() (*AzureSession, error) {
 	authorizer, err := auth.NewAuthorizerFromFile(azure.PublicCloud.ResourceManagerEndpoint)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Can't initialize authorizer ☹️")
+		return nil, errors.Wrap(err, "Can't initialize authorizer")
 	}
+
 	authInfo, err := readJSON(os.Getenv("AZURE_AUTH_LOCATION"))
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Can''t get authinfo")
+		return nil, errors.Wrap(err, "Can't get authinfo")
 	}
+
 	sess := AzureSession{
 		SubscriptionID: (*authInfo)["subscriptionId"].(string),
 		Authorizer:     authorizer,
 	}
 
-	return &sess, err
+	return &sess, nil
 }
 
 func getGroups(sess *AzureSession) ([]string, error) {
@@ -83,7 +87,7 @@ func getVM(sess *AzureSession, rg string, wg *sync.WaitGroup) {
 
 	for vm, err := vmClient.ListComplete(context.Background(), rg); vm.NotDone(); err = vm.Next() {
 		if err != nil {
-			log.Print(err, "got error while traverising RG list")
+			log.Print("got error while traverising RG list: ", err)
 		}
 		i := vm.Value()
 		fmt.Printf("(%s) VM %s\n", rg, *i.Name)
@@ -96,12 +100,14 @@ func main() {
 	sess, err := newSessionFromFile()
 
 	if err != nil {
-		log.Fatal("Can't create session: ", err)
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
 	groups, err := getGroups(sess)
 
 	if err != nil {
-		log.Fatal("Can't get resource groups")
+		fmt.Printf("%v\n", err)
+		os.Exit(1)
 	}
 
 	wg.Add(len(groups))
