@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-06-01/compute"
@@ -71,7 +72,7 @@ func getGroups(sess *AzureSession) ([]string, error) {
 
 	for list, err := grClient.ListComplete(context.Background(), "", nil); list.NotDone(); err = list.Next() {
 		if err != nil {
-			return nil, errors.Wrap(err, "got error while traverising RG list")
+			return nil, errors.Wrap(err, "error traverising RG list")
 		}
 		rgName := *list.Value().Name
 		tab = append(tab, rgName)
@@ -89,8 +90,19 @@ func getVM(sess *AzureSession, rg string, wg *sync.WaitGroup) {
 		if err != nil {
 			log.Print("got error while traverising RG list: ", err)
 		}
+
 		i := vm.Value()
-		fmt.Printf("(%s) VM %s\n", rg, *i.Name)
+		tags := []string{}
+		for k, v := range i.Tags {
+			tags = append(tags, fmt.Sprintf("%s?%s", k, *v))
+		}
+		tagsS := strings.Join(tags, "%")
+
+		if len(i.Tags) > 0 {
+			fmt.Printf("%s,%s,%s,<%s>\n", rg, *i.Name, *i.ID, tagsS)
+		} else {
+			fmt.Printf("%s,%s,%s\n", rg, *i.Name, *i.ID)
+		}
 	}
 }
 
