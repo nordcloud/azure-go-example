@@ -14,7 +14,7 @@ Before using or changing the code, run:
 
 Create service principal file:
 
-```az ad sp create-for-rbac -sdk-auth > my.auth```
+```az ad sp create-for-rbac --sdk-auth > my.auth```
 
 And export path to the authorizer:
 
